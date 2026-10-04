@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>North Dakota Market Overview – Good Samaritan Society</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📍</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,700&display=swap">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<style>
+  :root {
+    --mine: #FF1FCE; --snf: #1D5BD8; --assisted: #22E04B; --independent: #FF8C00;
+    --hospital: #C8102E; --other: #8B94A5;
+    --navy: #1E3556; --ink: #1C2333; --muted: #5C6679; --line: #E3E7EE; --soft: #F4F6FA;
+    --page: #EEF1F6;
+    --font: "Public Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --serif: "Source Serif 4", Georgia, "Times New Roman", serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  :root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+  body { font-family: var(--font); color: var(--ink); background: var(--page); display: flex; flex-direction: column; }
+
+  header { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 14px 20px 10px; flex-wrap: wrap; }
+  header h1 { font-family: var(--serif); font-size: clamp(26px, 3.4vw, 44px); line-height: 1.05; margin: 0; color: var(--navy); letter-spacing: -0.01em; }
+  header p { margin: 4px 0 0; font-size: clamp(14px, 1.4vw, 19px); color: #3D4A60; }
+  .tiles { display: grid; grid-template-columns: repeat(3, minmax(140px, 1fr)); gap: 10px; }
+  .tile { border-radius: 12px; padding: 8px 14px 10px; text-align: center; min-width: 120px; }
+  .tile b { display: block; font-family: var(--serif); font-size: 30px; line-height: 1.1; font-variant-numeric: tabular-nums; }
+  .tile span { font-size: 13px; line-height: 1.25; display: block; }
+  .t1 { background: #E6E5F8; color: #2B2F6E; }
+  .t2 { background: #E2EAFA; color: #1A4BB0; }
+  .t3 { background: #FBE2F4; color: #A3107A; }
+  .t4 { background: #FDEAD6; color: #A45200; }
+
+  main { flex: 1; min-height: 0; display: grid; grid-template-columns: 1fr 390px; gap: 14px; padding: 0 20px 16px; }
+  .mapwrap { position: relative; border-radius: 14px; overflow: hidden; box-shadow: 0 2px 10px rgba(20,30,50,.12); min-height: 420px; }
+  #map { position: absolute; inset: 0; background: #DDE3EA; }
+
+  aside { display: flex; flex-direction: column; gap: 12px; min-height: 0; }
+  .card { background: #fff; border-radius: 14px; box-shadow: 0 2px 10px rgba(20,30,50,.10); overflow: hidden; }
+  .card-head { background: var(--navy); color: #fff; padding: 11px 16px; font-family: var(--serif); font-size: 21px; font-weight: 700; display: flex; justify-content: space-between; align-items: baseline; }
+  .card-head small { font-family: var(--font); font-size: 12px; font-weight: 500; opacity: .8; }
+  .facilities { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+  .flist { list-style: none; margin: 0; padding: 0; overflow-y: auto; flex: 1; }
+  .flist li { border-bottom: 1px solid var(--line); }
+  .flist li:nth-child(even) button { background: #F8F9FC; }
+  .fitem { width: 100%; border: 0; background: #fff; font: inherit; color: inherit; text-align: left; cursor: pointer; display: grid; grid-template-columns: 34px 1fr auto; gap: 10px; align-items: center; padding: 9px 14px; }
+  .fitem:hover, .fitem.hot { background: #FFF0FB !important; }
+  .num { width: 30px; height: 30px; border-radius: 50%; background: var(--mine); color: #fff; font-weight: 700; font-size: 14px; display: grid; place-items: center; box-shadow: 0 0 0 2px #fff, 0 0 0 3px rgba(0,0,0,.12); }
+  .fname { font-weight: 600; font-size: 14.5px; line-height: 1.25; }
+  .fsub { font-size: 12.5px; color: var(--muted); margin-top: 1px; }
+  .fnear { font-size: 11.5px; color: var(--muted); margin-top: 3px; display: flex; gap: 8px; flex-wrap: wrap; }
+  .fnear i { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 3px; vertical-align: 1px; }
+  .fcap { text-align: right; font-size: 13px; line-height: 1.35; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .fcap span { display: block; }
+
+  .notes { background: #E8EDF5; box-shadow: none; padding: 12px 16px 14px; }
+  .notes h2 { font-family: var(--serif); font-size: 18px; margin: 0 0 6px; color: var(--navy); }
+  .notes ul { margin: 0; padding-left: 18px; font-size: 12.5px; line-height: 1.5; color: #34405A; }
+  .status { font-size: 12.5px; line-height: 1.45; color: #34405A; background: #fff; border-radius: 8px; padding: 8px 10px; margin-bottom: 8px; }
+  .status.error { background: #FDEEF0; color: #8A1024; }
+  .status button { margin-top: 6px; }
+  .spinner { display: inline-block; width: 11px; height: 11px; margin-right: 6px; vertical-align: -1px; border: 2px solid #C5CBD6; border-top-color: var(--ink); border-radius: 50%; animation: spin .8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce) { .spinner { animation: none; } }
+  .actions { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+  .btn { font: 600 13px var(--font); color: var(--ink); background: #fff; border: 1px solid #C3CAD6; border-radius: 8px; padding: 7px 12px; cursor: pointer; }
+  .btn:hover { background: var(--soft); }
+  .btn:focus-visible, .fitem:focus-visible, .legend input:focus-visible { outline: 3px solid var(--mine); outline-offset: -3px; }
+
+  /* map legend */
+  .legend { background: rgba(255,255,255,.96); border-radius: 12px; box-shadow: 0 2px 10px rgba(20,30,50,.18); padding: 8px 12px; font-family: var(--font); color: var(--ink); min-width: 230px; }
+  .legend label { display: flex; align-items: center; gap: 9px; padding: 4px 0; font-size: 13px; cursor: pointer; }
+  .legend input { margin: 0; width: 15px; height: 15px; accent-color: var(--navy); }
+  .legend .name { flex: 1; }
+  .legend .count { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+  .sw { flex: none; width: 15px; height: 15px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.25); }
+  .sw.mine { background: var(--mine); color: #fff; font: 700 9px/11px var(--font); text-align: center; width: 17px; height: 17px; }
+  .sw.snf { background: var(--snf); border-radius: 3px; }
+  .sw.otherSnf { background: var(--other); border-radius: 3px; width: 11px; height: 11px; }
+  .sw.assisted { background: var(--assisted); }
+  .sw.independent { background: var(--independent); }
+  .sw.hospital { background: var(--hospital); color: #fff; font: 700 12px/11px var(--font); text-align: center; }
+  .sw.rings { background: rgba(255,31,206,.08); border: 2px dashed var(--mine); box-shadow: none; }
+
+  /* markers */
+  .m-num { width: 30px; height: 30px; border-radius: 50%; background: var(--mine); color: #fff; font: 700 14px/26px var(--font); text-align: center; border: 2px solid #fff; box-shadow: 0 2px 6px rgba(0,0,0,.35); transition: transform .15s; }
+  .m-num.hot { transform: scale(1.35); }
+  .m-hosp { width: 20px; height: 20px; border-radius: 50%; background: var(--hospital); border: 2px solid #fff; box-shadow: 0 1px 3px rgba(0,0,0,.4); color: #fff; font: 700 15px/16px var(--font); text-align: center; }
+  .m-snf { width: 15px; height: 15px; border-radius: 4px; background: var(--snf); border: 2px solid #fff; box-shadow: 0 1px 3px rgba(0,0,0,.45); }
+  .m-osnf { width: 10px; height: 10px; border-radius: 3px; background: var(--other); border: 1.5px solid #fff; box-shadow: 0 0 2px rgba(0,0,0,.4); }
+  .leaflet-tooltip.state-label { background: none; border: 0; box-shadow: none; font: 700 22px var(--font); letter-spacing: .35em; color: rgba(30,53,86,.55); text-transform: uppercase; }
+  .leaflet-tooltip.state-label::before { display: none; }
+
+  .leaflet-popup-content { font-family: var(--font); font-size: 13px; line-height: 1.45; margin: 12px 14px; min-width: 220px; }
+  .pop-type { font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 6px; margin-bottom: 2px; }
+  .pop-type i { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .pop-name { font-size: 15px; font-weight: 700; margin: 0 0 4px; }
+  .pop-cap { font-size: 14px; font-weight: 600; margin: 2px 0 6px; font-variant-numeric: tabular-nums; }
+  .pop-row { color: var(--muted); }
+  .pop-row a { color: #0B57D0; }
+  .pop-dist { margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--line); }
+  .pop-table { border-collapse: collapse; width: 100%; margin: 6px 0; font-variant-numeric: tabular-nums; }
+  .pop-table th { text-align: left; font-size: 11px; color: var(--muted); font-weight: 600; border-bottom: 1px solid var(--line); padding: 3px 6px 3px 0; }
+  .pop-table td { padding: 3px 6px 3px 0; border-bottom: 1px solid var(--soft); vertical-align: top; }
+  .pop-table td.n { text-align: right; }
+  .stars { color: #B7791F; letter-spacing: 1px; }
+  .approx { color: #8A5A00; font-size: 12px; }
+
+  @media (max-width: 960px) {
+    html, body { height: auto; }
+    main { grid-template-columns: 1fr; }
+    .mapwrap { height: 62vh; }
+    .tiles { grid-template-columns: repeat(3, 1fr); width: 100%; }
+    .flist { max-height: none; }
+    .legend { min-width: 0; font-size: 12px; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>North Dakota Market Overview</h1>
+    <p>Skilled Nursing (Post Acute), Assisted Living &amp; Independent Living<span id="rad" hidden></span></p>
+  </div>
+  <div class="tiles" id="tiles"></div>
+</header>
+
+<main>
+  <div class="mapwrap"><div id="map" role="application" aria-label="Map of campuses and nearby competitors"></div></div>
+  <aside>
+    <section class="card facilities" aria-label="Your campuses">
+      <div class="card-head"><span id="fhead">Campuses</span><small>Tap to zoom</small></div>
+      <ul class="flist" id="flist"></ul>
+    </section>
+    <section class="card notes" aria-label="Notes">
+      <h2>Notes</h2>
+      <div class="status" id="status" role="status" aria-live="polite"></div>
+      <ul>
+        <li>Rings show a <span class="radtxt"></span>-mile market area around each campus.</li>
+        <li>Your campuses and capacity: facility mapping. Skilled nursing: CMS Care Compare (processed Aug 2026).</li>
+        <li>Hospitals, assisted living and independent living: OpenStreetMap, which may miss some smaller communities.</li>
+      </ul>
+      <div class="actions">
+        <button class="btn" id="fitBtn">Show whole state</button>
+        <button class="btn" id="exportBtn">Download for Excel</button>
+      </div>
+    </section>
+  </aside>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script>
+/* ============ SETTINGS ============ */
+const RADIUS_MILES = 20;
+const COLORS = {
+  mine: '#FF1FCE', snf: '#1D5BD8', otherSnf: '#8B94A5',
+  assisted: '#22E04B', independent: '#FF8C00', hospital: '#C8102E'
+};
+
+/* ============ DATA (from NDakota.xlsx) ============
+   CAMPUSES: your locations from the FacilityMapping tab. Campuses without
+   latitude/longitude are located from their address when the page loads;
+   to pin one exactly, type its lat/lon in below.
+   SNFS: every other North Dakota skilled nursing facility from the SNF tab.
+   OUTLINE: the state boundary (US Census, simplified). */
+const DATA = {"state": "North Dakota", "st": "ND", "center": [47.46392, -99.65090000000001], "snfNote": "", "camps": [{"facility": "GSS - Arthur ND|150 COUNTY RD 34", "managed": false, "address": "150 County Rd 34", "city": "Arthur", "zip": "58006", "lat": null, "lon": null, "ccn": null, "rating": null, "services": [{"careType": "AL", "community": "Assisted Living (Basic Care)", "units": 56, "beds": null}], "name": "Good Samaritan Society \u2013 Arthur"}, {"facility": "GSS - Sanford-GSS (Augusta Place)|301 LORRAIN DRIVE", "managed": false, "address": "301 Lorrain Drive", "city": "Bismarck", "zip": "58503", "lat": 46.8496, "lon": -100.79, "ccn": 355125, "rating": 5, "services": [{"careType": "AL", "community": "Assisted Living (Basic Care)", "units": 18, "beds": null}, {"careType": "IL", "community": "Twin Home Duplexes", "units": 2, "beds": null}, {"careType": "SNF", "community": "Post Acute Skilled", "units": null, "beds": 48, "ccn": 355125, "rating": 5}], "name": "Good Samaritan Society \u2013 Bismarck (Augusta Place)"}, {"facility": "GSS - Sanford-GSS St Vincents (Marillac Manor)|1016 N 28TH STREET", "managed": false, "address": "1016 N 28th Street", "city": "Bismarck", "zip": "58501", "lat": null, "lon": null, "ccn": null, "rating": null, "services": [{"careType": "IL", "community": "Senior Living", "units": 77, "beds": null}], "name": "Good Samaritan Society \u2013 Bismarck (Marillac Manor)"}, {"facility": "GSS - Sanford-GSS St Vincents|1021 N. 26TH ST.", "managed": false, "address": "1021 N. 26th St.", "city": "Bismarck", "zip": "58501", "lat": 46.8155, "lon": -100.75, "ccn": 355060, "rating": 1, "services": [{"careType": "SNF", "community": "Post Acute Skilled", "units": null, "beds": 97, "ccn": 355060, "rating": 1}], "name": "Good Samaritan Society \u2013 Bismarck (St. Vincent's)"}, {"facility": "GSS - Bottineau ND|725 10TH ST E", "managed": false, "address": "725 10th St E", "city": "Bottineau", "zip": "58318", "lat": 48.8223, "lon": -100.43, "ccn": 355093, "rating": 2, "services": [{"careType": "SNF", "community": "Post Acute Skilled", "units": null, "beds": 52, "ccn": 355093, "rating": 2}], "name": "Good Samaritan Society \u2013 Bottineau"}, {"facility": "GSS - Arthur ND|612 5TH ST N", "managed": false, "address": "612 5th St N", "city": "Casselton", "zip": "58012", "lat": null, "lon": null, "ccn": null, "rating": null, "services": [{"careType": "IL", "community": "Senior Living", "units": 13, "beds": null}, {"careType": "IL", "community": "Senior Living", "units": 20, "beds": null}], "name": "Good Samaritan Society \u2013 Casselton"}, {"facility": "GSS - Fargo, ND|4502 37TH AVE S", "managed": false, "address": "4502 37th Ave S", "city": "Fargo", "zip": "58104", "lat": null, "lon": null, "ccn": null, "rating": null, "services": [{"careType": "AL", "community": "Assisted Living (Basic Care)", "units": 83, "beds": null}], "name": "Good Samaritan Society \u2013 Fargo"}, {"facility": "GSS - Lakota ND|608 4TH AVENUE SW", "managed": false, "address": "608 4th Avenue Sw", "city": "Lakota", "zip": "58344", "lat": 48.046, "lon": -98.348, "ccn": 355104, "rating": 1, "services": [{"careType": "SNF", "community": "Post Acute Skilled", "units": null, "beds": 38, "ccn": 355104, "rating": 1}, {"careType": "IL", "community": "Senior Living", "units": 16, "beds": null}, {"careType": "AL", "community": "Assisted Living (Basic Care)", "units": 7, "beds": null}], "name": "Good Samaritan Society \u2013 Lakota"}, {"facility": "GSS - Larimore ND|501 E FRONT STREET", "managed": false, "address": "501 E Front Street", "city": "Larimore", "zip": "58251", "lat": 47.9047, "lon": -97.618, "ccn": 355097, "rating": null, "services": [{"careType": "SNF", "community": "Post Acute Skilled", "units": null, "beds": 40, "ccn": 355097, "rating": null}, {"careType": "IL", "community": "Senior Living", "units": 10, "beds": null}, {"careType": "AL", "community": "Assisted Living (Basic Care)", "units": 6, "beds": null}], "name": "Good Samaritan Society \u2013 Larimore"}, {"facility": "GSS - Sanford-GSS Mandan Miller Pointe|3500 21ST ST SE", "managed": false, "address": "3500 21st St Se", "city": "Mandan", "zip": "58554", "lat": 46.8043, "lon": -100.85, "ccn": 355106, "rating": 3, "services": [{"careType": "SNF", "community": "Post Acute Skilled", "units": null, "beds": 120, "ccn": 355106, "rating": 3}], "name": "Good Samaritan Society \u2013 Mandan (Miller Pointe)"}, {"facility": "GSS - Sanford-GSS - Sunset Drive|1011 BOUNDARY STREET NW", "managed": false, "address": "1011 Boundary Street Nw", "city": "Mandan", "zip": "58554", "lat": 46.8429, "lon": -100.91, "ccn": 355065, "rating": 1, "services": [{"careType": "SNF", "community": "Post Acute Skilled", "units": null, "beds": 128, "ccn": 355065, "rating": 1}], "name": "Good Samaritan Society \u2013 Mandan (Sunset Drive)"}, {"facility": "GSS - Oakes ND|213 N. 9TH ST", "managed": false, "address": "213 N. 9th St", "city": "Oakes", "zip": "58474", "lat": 46.141, "lon": -98.088, "ccn": 355095, "rating": 2, "services": [{"careType": "SNF", "community": "Post Acute Skilled", "units": null, "beds": 46, "ccn": 355095, "rating": 2}, {"careType": "IL", "community": "Senior Living", "units": 14, "beds": null}], "name": "Good Samaritan Society \u2013 Oakes"}, {"facility": "GSS - Park River ND|301 S COUNTY ROAD 12B", "managed": false, "address": "301 S County Road 12B", "city": "Park River", "zip": "58270", "lat": 48.36, "lon": -97.795, "ccn": 355089, "rating": 2, "services": [{"careType": "SNF", "community": "Post Acute Skilled", "units": null, "beds": 44, "ccn": 355089, "rating": 2}, {"careType": "IL", "community": "Senior Living", "units": 18, "beds": null}, {"careType": "AL", "community": "Assisted Living (Basic Care)", "units": 6, "beds": null}], "name": "Good Samaritan Society \u2013 Park River"}, {"facility": "Souris Valley Care Center|302 S MAIN STREET", "managed": false, "address": "302 S Main Street", "city": "Velva", "zip": "58790", "lat": 48.0529, "lon": -100.93, "ccn": 355109, "rating": 1, "services": [{"careType": "SNF", "community": "Post Acute Skilled", "units": null, "beds": 46, "ccn": 355109, "rating": 1}, {"careType": "AL", "community": "Assisted Living (Basic Care)", "units": 16, "beds": null}], "name": "Velva (Souris Valley Care Center)"}], "snfs": [{"ccn": "355024", "name": "THE MEADOWS ON UNIVERSITY", "address": "1315 S UNIVERSITY DR", "city": "FARGO", "zip": "58103", "phone": "7012373030", "beds": 95, "census": 68.7, "owner": "For profit - Limited Liability company", "chain": "EDURO HEALTHCARE", "rating": 1, "lat": 46.8611, "lon": -96.798}, {"ccn": "355031", "name": "MINOT HEALTH AND REHAB, LLC", "address": "600 S MAIN ST", "city": "MINOT", "zip": "58701", "phone": "7018521255", "beds": 76, "census": 34.2, "owner": "For profit - Limited Liability company", "chain": "NORTH SHORE HEALTHCARE", "rating": 1, "lat": 48.2312, "lon": -101.29}, {"ccn": "355033", "name": "ST CATHERINES LIVING CENTER", "address": "1307 N 7TH ST", "city": "WAHPETON", "zip": "58075", "phone": "7016426667", "beds": 49, "census": 44.4, "owner": "Non profit - Corporation", "chain": "BENEDICTINE HEALTH SYSTEM", "rating": 2, "lat": 46.279, "lon": -96.609}, {"ccn": "355034", "name": "TIOGA MEDICAL CENTER LTC", "address": "810 N WELO ST", "city": "TIOGA", "zip": "58852", "phone": "7016643305", "beds": 30, "census": 25, "owner": "Non profit - Corporation", "chain": "", "rating": 3, "lat": 48.4023, "lon": -102.93}, {"ccn": "355036", "name": "MARIAN MANOR HEALTHCARE CENTER", "address": "604 ASH AVE E", "city": "GLEN ULLIN", "zip": "58631", "phone": "7013483107", "beds": 54, "census": 51.8, "owner": "Non profit - Corporation", "chain": "", "rating": 1, "lat": 46.8141, "lon": -101.82}, {"ccn": "355037", "name": "SMP HEALTH - ST ALOISIUS", "address": "325 E BREWSTER ST", "city": "HARVEY", "zip": "58341", "phone": "7013244651", "beds": 65, "census": 63, "owner": "Non profit - Church related", "chain": "", "rating": 5, "lat": 47.7677, "lon": -99.932}, {"ccn": "355038", "name": "ST GERARD'S COMMUNITY OF CARE", "address": "613 1ST AVE SW", "city": "HANKINSON", "zip": "58041", "phone": "7012427891", "beds": 34, "census": 30.9, "owner": "Non profit - Church related", "chain": "", "rating": 3, "lat": 46.0671, "lon": -96.904}, {"ccn": "355039", "name": "GRIGGS COUNTY CARE CENTER", "address": "107 12TH ST S", "city": "COOPERSTOWN", "zip": "58425", "phone": "7017972221", "beds": 40, "census": 37.5, "owner": "Non profit - Corporation", "chain": "", "rating": 5, "lat": 47.4393, "lon": -98.119}, {"ccn": "355040", "name": "LUTHER MEMORIAL HOME", "address": "750 MAIN ST E", "city": "MAYVILLE", "zip": "58257", "phone": "7017863401", "beds": 62, "census": 60.6, "owner": "Non profit - Corporation", "chain": "", "rating": 4, "lat": 47.5018, "lon": -97.315}, {"ccn": "355041", "name": "LUTHERAN HOME OF THE GOOD SHEPHERD", "address": "1226 1ST AVE N", "city": "NEW ROCKFORD", "zip": "58356", "phone": "7019472944", "beds": 51, "census": 46.6, "owner": "Non profit - Corporation", "chain": "", "rating": 3, "lat": 47.6812, "lon": -99.146}, {"ccn": "355042", "name": "Western Horizons Care Center", "address": "1104  HWY 12", "city": "HETTINGER", "zip": "58639", "phone": "7015672401", "beds": 31, "census": 28.6, "owner": "Non profit - Corporation", "chain": "", "rating": 1, "lat": 46.0175, "lon": -102.69}, {"ccn": "355044", "name": "MOUNTRAIL BETHEL HOME", "address": "615 6TH ST SE", "city": "STANLEY", "zip": "58784", "phone": "7016282442", "beds": 36, "census": 32.6, "owner": "Non profit - Church related", "chain": "", "rating": 3, "lat": 48.3134, "lon": -102.38}, {"ccn": "355046", "name": "GOLDEN ACRES MANOR", "address": "1 E MAIN ST", "city": "CARRINGTON", "zip": "58421", "phone": "7016523117", "beds": 64, "census": 61.4, "owner": "For profit - Corporation", "chain": "", "rating": 3, "lat": 47.4144, "lon": -99.266}, {"ccn": "355047", "name": "SMP HEALTH - ST CATHERINE NORTH", "address": "1351 N BROADWAY", "city": "FARGO", "zip": "58102", "phone": "7012777999", "beds": 125, "census": 119.6, "owner": "Non profit - Church related", "chain": "SMP HEALTH", "rating": 4, "lat": 46.8952, "lon": -96.788}, {"ccn": "355048", "name": "PRINCE OF PEACE CARE CENTER", "address": "201 8TH ST N", "city": "ELLENDALE", "zip": "58436", "phone": "7013493312", "beds": 55, "census": 51.1, "owner": "Non profit - Corporation", "chain": "BENEDICTINE HEALTH SYSTEM", "rating": 4, "lat": 46.0098, "lon": -98.526}, {"ccn": "355049", "name": "STRASBURG NURSING HOME", "address": "409 S 3RD ST", "city": "STRASBURG", "zip": "58573", "phone": "7013362651", "beds": 30, "census": 26.7, "owner": "Non profit - Corporation", "chain": "", "rating": 5, "lat": 46.1369, "lon": -100.16}, {"ccn": "355050", "name": "Maple Manor Care Center", "address": "1116 9TH AVE", "city": "LANGDON", "zip": "58249", "phone": "7012562987", "beds": 45, "census": 36.2, "owner": "Non profit - Corporation", "chain": "", "rating": 1, "lat": 48.7612, "lon": -98.38}, {"ccn": "355051", "name": "HATTON PRAIRIE VILLAGE", "address": "950 DAKOTA AVE", "city": "HATTON", "zip": "58240", "phone": "7015433102", "beds": 38, "census": 36.2, "owner": "Non profit - Corporation", "chain": "", "rating": 5, "lat": 47.6368, "lon": -97.453}, {"ccn": "355052", "name": "NELSON COUNTY HEALTH SYSTEM CARE CENTER", "address": "108 E NYHUS AVE", "city": "MCVILLE", "zip": "58254", "phone": "7013224314", "beds": 35, "census": 32, "owner": "Government - City", "chain": "", "rating": 2, "lat": 47.7686, "lon": -98.177}, {"ccn": "355053", "name": "KNIFE RIVER CARE CENTER", "address": "118 22ND ST NE", "city": "BEULAH", "zip": "58523", "phone": "7018734322", "beds": 86, "census": 83, "owner": "Non profit - Corporation", "chain": "", "rating": 3, "lat": 47.2846, "lon": -101.78}, {"ccn": "355057", "name": "PEMBILIER NURSING CENTER", "address": "500 DELANO AVE", "city": "WALHALLA", "zip": "58282", "phone": "7015493831", "beds": 31, "census": 29.3, "owner": "Non profit - Corporation", "chain": "", "rating": 4, "lat": 48.9204, "lon": -97.922}, {"ccn": "355058", "name": "BAPTIST HEALTH & REHAB", "address": "3400 NEBRASKA DRIVE", "city": "BISMARCK", "zip": "58503", "phone": "7012233040", "beds": 140, "census": 133.3, "owner": "Non profit - Church related", "chain": "CASSIA", "rating": 4, "lat": 46.8429, "lon": -100.75}, {"ccn": "355061", "name": "SANFORD HILLSBORO CARE CENTER", "address": "12 3RD ST SE", "city": "HILLSBORO", "zip": "58045", "phone": "7016363235", "beds": 34, "census": 32.8, "owner": "Non profit - Corporation", "chain": "SANFORD HEALTH", "rating": 3, "lat": 47.4036, "lon": -97.057}, {"ccn": "355063", "name": "ST LUKES HOME", "address": "242 10TH ST W", "city": "DICKINSON", "zip": "58601", "phone": "7014835000", "beds": 88, "census": 86.2, "owner": "Non profit - Corporation", "chain": "", "rating": 5, "lat": 46.8905, "lon": -102.79}, {"ccn": "355064", "name": "BENEDICTINE LIVING CENTER OF GARRISON", "address": "609 4TH AVE NE", "city": "GARRISON", "zip": "58540", "phone": "7014632226", "beds": 52, "census": 48.9, "owner": "Non profit - Church related", "chain": "BENEDICTINE HEALTH SYSTEM", "rating": 3, "lat": 47.6552, "lon": -101.41}, {"ccn": "355066", "name": "WISHEK LIVING CENTER", "address": "400 S 4TH ST", "city": "WISHEK", "zip": "58495", "phone": "7014522333", "beds": 43, "census": 38.6, "owner": "Non profit - Corporation", "chain": "", "rating": 5, "lat": 46.2551, "lon": -99.561}, {"ccn": "355067", "name": "VALLEY SENIOR LIVING ON COLUMBIA", "address": "2900 14TH AVE S", "city": "GRAND FORKS", "zip": "58201", "phone": "7017877900", "beds": 196, "census": 187.1, "owner": "Non profit - Church related", "chain": "", "rating": 4, "lat": 47.9072, "lon": -97.069}, {"ccn": "355068", "name": "TOWNER COUNTY LIVING CTR", "address": "228 1ST AVE", "city": "CANDO", "zip": "58324", "phone": "7019682600", "beds": 28, "census": 27.4, "owner": "Non profit - Corporation", "chain": "", "rating": 4, "lat": 48.4922, "lon": -99.21}, {"ccn": "355069", "name": "EVENTIDE HEARTLAND", "address": "620 14TH AVE NE", "city": "DEVILS LAKE", "zip": "58301", "phone": "7016624905", "beds": 78, "census": 72.1, "owner": "Non profit - Corporation", "chain": "", "rating": 4, "lat": 48.1135, "lon": -98.844}, {"ccn": "355070", "name": "BETHEL LUTHERAN NURSING & REHABILITATION CENTER", "address": "1515 2ND AVE WEST", "city": "WILLISTON", "zip": "58801", "phone": "7015726766", "beds": 90, "census": 75.4, "owner": "Non profit - Corporation", "chain": "", "rating": 2, "lat": 48.1585, "lon": -103.63}, {"ccn": "355072", "name": "MCKENZIE COUNTY HEALTHCARE SYSTEMS LONG TERM CARE", "address": "709 4TH AVENUE  NE", "city": "WATFORD CITY", "zip": "58854", "phone": "7014442331", "beds": 42, "census": 38.2, "owner": "Non profit - Corporation", "chain": "", "rating": 3, "lat": 47.8047, "lon": -103.27}, {"ccn": "355074", "name": "TRINITY HOMES", "address": "305 8TH AVE NE", "city": "MINOT", "zip": "58703", "phone": "7018575800", "beds": 141, "census": 137.6, "owner": "Non profit - Corporation", "chain": "", "rating": 1, "lat": 48.2437, "lon": -101.29}, {"ccn": "355077", "name": "SMP HEALTH - ST RAPHAEL", "address": "979 CENTRAL AVE N", "city": "VALLEY CITY", "zip": "58072", "phone": "7018458222", "beds": 170, "census": 158.6, "owner": "Non profit - Church related", "chain": "SMP HEALTH", "rating": 5, "lat": 46.9328, "lon": -98.003}, {"ccn": "355078", "name": "EVENTIDE JAMESTOWN", "address": "1300 2ND PL NE", "city": "JAMESTOWN", "zip": "58401", "phone": "7012525881", "beds": 79, "census": 76, "owner": "Non profit - Corporation", "chain": "", "rating": 3, "lat": 46.9095, "lon": -98.691}, {"ccn": "355079", "name": "SMP HEALTH - ST CATHERINE SOUTH", "address": "3102 S UNIVERSITY DR", "city": "FARGO", "zip": "58103", "phone": "7012937750", "beds": 98, "census": 91.8, "owner": "Non profit - Corporation", "chain": "SMP HEALTH", "rating": 4, "lat": 46.8528, "lon": -96.799}, {"ccn": "355080", "name": "DUNSEITH COM NURSING HOME", "address": "15 1ST ST NE", "city": "DUNSEITH", "zip": "58329", "phone": "7012445495", "beds": 30, "census": 20.5, "owner": "Government - City", "chain": "", "rating": 2, "lat": 48.8129, "lon": -100.06}, {"ccn": "355081", "name": "ROLETTE COMMUNITY CARE CENTER", "address": "804 STATE STREET", "city": "ROLETTE", "zip": "58366", "phone": "7012463786", "beds": 31, "census": 20.7, "owner": "Non profit - Corporation", "chain": "", "rating": 1, "lat": 48.6672, "lon": -99.842}, {"ccn": "355082", "name": "SMP HEALTH - AVE MARIA", "address": "501 19TH ST NE", "city": "JAMESTOWN", "zip": "58401", "phone": "7012525660", "beds": 100, "census": 96.7, "owner": "Non profit - Corporation", "chain": "SMP HEALTH", "rating": 3, "lat": 46.9281, "lon": -98.703}, {"ccn": "355084", "name": "LUTHERAN SUNSET HOME", "address": "333 EASTERN AVE", "city": "GRAFTON", "zip": "58237", "phone": "7013521901", "beds": 87, "census": 81.8, "owner": "Non profit - Church related", "chain": "", "rating": 3, "lat": 48.4213, "lon": -97.399}, {"ccn": "355086", "name": "BETHANY ON UNIVERSITY", "address": "201 S UNIVERSITY DR", "city": "FARGO", "zip": "58103", "phone": "7012393000", "beds": 172, "census": 164.2, "owner": "Non profit - Corporation", "chain": "", "rating": 5, "lat": 46.8729, "lon": -96.798}, {"ccn": "355087", "name": "WEDGEWOOD MANOR", "address": "804 MAIN ST W", "city": "CAVALIER", "zip": "58220", "phone": "7012658453", "beds": 33, "census": 33.1, "owner": "Non profit - Other", "chain": "", "rating": 1, "lat": 48.7934, "lon": -97.632}, {"ccn": "355090", "name": "ST BENEDICTS HEALTH CENTER", "address": "851 4TH AVE E", "city": "DICKINSON", "zip": "58601", "phone": "7014567242", "beds": 124, "census": 114, "owner": "Non profit - Corporation", "chain": "BENEDICTINE HEALTH SYSTEM", "rating": 5, "lat": 46.8876, "lon": -102.78}, {"ccn": "355091", "name": "ASHLEY MEDICAL CENTER NURSING HOME", "address": "612 CENTER AVE N", "city": "ASHLEY", "zip": "58413", "phone": "7012883433", "beds": 31, "census": 29.1, "owner": "For profit - Corporation", "chain": "", "rating": 5, "lat": 46.0396, "lon": -99.372}, {"ccn": "355092", "name": "HILL TOP HOME OF COMFORT INC", "address": "95 HILL TOP DR", "city": "KILLDEER", "zip": "58640", "phone": "7017645682", "beds": 60, "census": 59.4, "owner": "Non profit - Corporation", "chain": "", "rating": 2, "lat": 47.3681, "lon": -102.76}, {"ccn": "355096", "name": "ANETA PARKVIEW HEALTH CTR", "address": "113 5TH ST S", "city": "ANETA", "zip": "58212", "phone": "7013264234", "beds": 35, "census": 34.1, "owner": "Non profit - Corporation", "chain": "", "rating": 5, "lat": 47.6793, "lon": -97.991}, {"ccn": "355101", "name": "Dakota  Alpha", "address": "1303 27th Street NW", "city": "Mandan", "zip": "58554", "phone": "7016630376", "beds": 20, "census": 19.7, "owner": "Non profit - Corporation", "chain": "", "rating": 5, "lat": 46.8502, "lon": -100.91}, {"ccn": "355102", "name": "WENTZ LIVING CENTER", "address": "555 LAKE AVE E", "city": "NAPOLEON", "zip": "58561", "phone": "7017542381", "beds": 36, "census": 34, "owner": "Non profit - Corporation", "chain": "", "rating": 4, "lat": 46.501, "lon": -99.762}, {"ccn": "355103", "name": "FOUR SEASONS HEALTH CARE INC", "address": "483 4TH ST SW", "city": "FORMAN", "zip": "58032", "phone": "7017246211", "beds": 25, "census": 23.3, "owner": "Non profit - Corporation", "chain": "", "rating": 1, "lat": 46.1037, "lon": -97.638}, {"ccn": "355107", "name": "ST ROSE CARE CENTER", "address": "315 1ST ST SE", "city": "LAMOURE", "zip": "58458", "phone": "7018835363", "beds": 36, "census": 31.4, "owner": "Non profit - Corporation", "chain": "BENEDICTINE HEALTH SYSTEM", "rating": 3, "lat": 46.3551, "lon": -98.293}, {"ccn": "355108", "name": "SMP HEALTH  - MARYHILL", "address": "110 HILLCREST DR", "city": "ENDERLIN", "zip": "58027", "phone": "7014373544", "beds": 42, "census": 41, "owner": "Non profit - Corporation", "chain": "SMP HEALTH", "rating": 5, "lat": 46.6287, "lon": -97.608}, {"ccn": "355110", "name": "ELM CREST MANOR", "address": "100 ELM AVE, #396", "city": "NEW SALEM", "zip": "58563", "phone": "7018437526", "beds": 62, "census": 59.3, "owner": "Non profit - Church related", "chain": "", "rating": 4, "lat": 46.8537, "lon": -101.44}, {"ccn": "355112", "name": "WOODSIDE VILLAGE", "address": "4000 24TH AVE S", "city": "GRAND FORKS", "zip": "58201", "phone": "7017877500", "beds": 138, "census": 129, "owner": "Non profit - Church related", "chain": "", "rating": 4, "lat": 47.8966, "lon": -97.086}, {"ccn": "355114", "name": "NORTH DAKOTA VETERANS HOME", "address": "1600 VETERANS DRIVE", "city": "LISBON", "zip": "58054", "phone": "7016836500", "beds": 52, "census": 49.6, "owner": "Government - State", "chain": "", "rating": 5, "lat": 46.4153, "lon": -97.653}, {"ccn": "355115", "name": "GARRISON MEM HOSP NSG FAC", "address": "407 3RD AVE SE", "city": "GARRISON", "zip": "58540", "phone": "7014632275", "beds": 26, "census": 19.8, "owner": "Non profit - Church related", "chain": "COMMONSPIRIT HEALTH", "rating": 2, "lat": 47.6484, "lon": -101.41}, {"ccn": "355116", "name": "PARKSIDE LUTHERAN HOME", "address": "501 3RD AVE W", "city": "LISBON", "zip": "58054", "phone": "7016835239", "beds": 40, "census": 36.2, "owner": "Non profit - Corporation", "chain": "", "rating": 1, "lat": 46.4435, "lon": -97.69}, {"ccn": "355122", "name": "RICHARDTON HEALTH CENTER INC", "address": "8885 HIGHWAY 10", "city": "RICHARDTON", "zip": "58652", "phone": "7019743304", "beds": 29, "census": 28.6, "owner": "Non profit - Corporation", "chain": "", "rating": 5, "lat": 46.8841, "lon": -102.32}, {"ccn": "355123", "name": "BETHANY ON 42ND", "address": "4255 30TH AVE S", "city": "FARGO", "zip": "58104", "phone": "7014788900", "beds": 116, "census": 113.5, "owner": "Non profit - Corporation", "chain": "", "rating": 5, "lat": 46.9156, "lon": -96.798}, {"ccn": "355124", "name": "SHEYENNE CROSSINGS CARE CENTER/TCU", "address": "125 13TH AVENUE WEST", "city": "WEST FARGO", "zip": "58078", "phone": "7014786100", "beds": 64, "census": 59.4, "owner": "Non profit - Corporation", "chain": "", "rating": 5, "lat": 46.8624, "lon": -96.9}, {"ccn": "355126", "name": "ST GABRIEL'S COMMUNITY", "address": "4580 COLEMAN STREET, SUITE 1", "city": "BISMARCK", "zip": "58503", "phone": "7017514224", "beds": 72, "census": 70.7, "owner": "Non profit - Corporation", "chain": "BENEDICTINE HEALTH SYSTEM", "rating": 5, "lat": 46.8597, "lon": -100.77}, {"ccn": "355127", "name": "EVENTIDE FARGO", "address": "3225 51ST ST  S", "city": "FARGO", "zip": "58104", "phone": "7014781800", "beds": 98, "census": 94.4, "owner": "Non profit - Church related", "chain": "", "rating": 3, "lat": 46.8547, "lon": -96.871}, {"ccn": "355128", "name": "MISSOURI SLOPE", "address": "4916 N WASHINGTON ST", "city": "BISMARCK", "zip": "58503", "phone": "7012239407", "beds": 192, "census": 185.1, "owner": "Non profit - Corporation", "chain": "", "rating": 4, "lat": 46.8591, "lon": -100.79}, {"ccn": "355129", "name": "FARGO ELIM HEALTH CARE CENTER", "address": "3534 UNIVERSITY DRIVE S", "city": "FARGO", "zip": "58104", "phone": "7012711862", "beds": 88, "census": 84.5, "owner": "Non profit - Corporation", "chain": "CASSIA", "rating": 3, "lat": 46.8259, "lon": -96.803}]};
+const OUTLINE = [[-100.5119, 45.9437], [-100.6277, 45.9436], [-100.6508, 45.9437], [-100.7209, 45.944], [-100.7504, 45.9436], [-100.7621, 45.9438], [-100.7621, 45.9438], [-100.7698, 45.9438], [-100.8902, 45.9439], [-100.9356, 45.9438], [-100.939, 45.9438], [-100.9644, 45.9438], [-100.9766, 45.9439], [-100.9807, 45.9441], [-101.1013, 45.9438], [-101.1068, 45.944], [-101.1426, 45.9438], [-101.1461, 45.9438], [-101.1632, 45.9439], [-101.1711, 45.944], [-101.1757, 45.944], [-101.1791, 45.9439], [-101.2038, 45.9439], [-101.224, 45.944], [-101.2715, 45.9442], [-101.2872, 45.9441], [-101.3133, 45.9442], [-101.3339, 45.9442], [-101.3653, 45.9441], [-101.3707, 45.9442], [-101.3738, 45.9443], [-101.5573, 45.9441], [-101.5622, 45.9442], [-101.6286, 45.9443], [-101.6576, 45.9444], [-101.6806, 45.9443], [-101.6818, 45.9444], [-101.7088, 45.9443], [-101.7234, 45.9442], [-101.7301, 45.9444], [-101.7586, 45.9445], [-101.7643, 45.9444], [-101.7653, 45.9444], [-101.7662, 45.9443], [-101.7901, 45.9444], [-101.7946, 45.9444], [-101.833, 45.9445], [-101.8526, 45.9445], [-101.8868, 45.9446], [-101.9574, 45.9445], [-101.9737, 45.9445], [-101.9895, 45.9445], [-101.9922, 45.9445], [-101.9986, 45.9446], [-101.9987, 45.9446], [-102.0004, 45.9446], [-102.0007, 45.9445], [-102.0007, 45.9445], [-102.0609, 45.9446], [-102.0851, 45.9446], [-102.0876, 45.9446], [-102.1246, 45.9448], [-102.1254, 45.9447], [-102.1353, 45.9446], [-102.1454, 45.9447], [-102.1564, 45.9447], [-102.158, 45.9446], [-102.1594, 45.9446], [-102.1767, 45.9446], [-102.177, 45.9446], [-102.2179, 45.9447], [-102.3282, 45.9448], [-102.3534, 45.945], [-102.3543, 45.9449], [-102.3927, 45.945], [-102.3928, 45.945], [-102.3964, 45.9449], [-102.3986, 45.9449], [-102.4062, 45.945], [-102.4103, 45.9451], [-102.4202, 45.9451], [-102.4254, 45.945], [-102.4254, 45.945], [-102.4464, 45.9451], [-102.4596, 45.9451], [-102.4676, 45.9452], [-102.476, 45.9452], [-102.5509, 45.945], [-102.5586, 45.9451], [-102.6426, 45.9454], [-102.6516, 45.9455], [-102.6667, 45.9453], [-102.6725, 45.9452], [-102.6741, 45.9453], [-102.7049, 45.9451], [-102.8803, 45.9451], [-102.9205, 45.945], [-102.9421, 45.9451], [-102.9899, 45.9452], [-102.9953, 45.9452], [-102.9957, 45.9452], [-103.0261, 45.9453], [-103.0478, 45.9453], [-103.0785, 45.9453], [-103.0979, 45.9453], [-103.1409, 45.9453], [-103.1613, 45.9453], [-103.2106, 45.9452], [-103.2184, 45.9452], [-103.2841, 45.9451], [-103.2841, 45.9452], [-103.4113, 45.9453], [-103.418, 45.9452], [-103.4324, 45.9453], [-103.4349, 45.9453], [-103.5587, 45.9451], [-103.5771, 45.9453], [-103.6608, 45.9452], [-103.6608, 45.9452], [-103.6685, 45.9452], [-104.0454, 45.9453], [-104.0467, 46.0], [-104.0456, 46.2802], [-104.0455, 46.3245], [-104.0455, 46.3419], [-104.0453, 46.5409], [-104.0453, 46.6414], [-104.0453, 46.6414], [-104.0455, 46.7087], [-104.0456, 46.7139], [-104.0454, 46.7213], [-104.0454, 46.7222], [-104.0454, 46.7254], [-104.0455, 46.9339], [-104.0455, 46.934], [-104.0456, 46.9412], [-104.0451, 47.0376], [-104.0451, 47.0409], [-104.0452, 47.0536], [-104.0452, 47.0575], [-104.0453, 47.0639], [-104.0454, 47.0786], [-104.045, 47.0812], [-104.0451, 47.0928], [-104.0452, 47.2639], [-104.0451, 47.266], [-104.0451, 47.2669], [-104.0451, 47.2714], [-104.0452, 47.2739], [-104.0451, 47.277], [-104.0453, 47.3301], [-104.0453, 47.332], [-104.0453, 47.3435], [-104.0451, 47.3975], [-104.0448, 47.4384], [-104.0446, 47.4594], [-104.0432, 47.7471], [-104.0432, 47.7473], [-104.0424, 47.8033], [-104.0424, 47.8054], [-104.0426, 47.8082], [-104.0419, 47.8417], [-104.0417, 47.8623], [-104.0422, 47.891], [-104.0433, 47.9496], [-104.0435, 47.9545], [-104.0439, 47.9715], [-104.0442, 47.9928], [-104.0441, 47.9961], [-104.0454, 48.1644], [-104.0455, 48.1762], [-104.0454, 48.1925], [-104.0456, 48.1939], [-104.0457, 48.2414], [-104.0457, 48.2446], [-104.0456, 48.2462], [-104.0459, 48.2551], [-104.046, 48.2568], [-104.0463, 48.3423], [-104.0464, 48.3742], [-104.0467, 48.3748], [-104.0469, 48.3894], [-104.0469, 48.3894], [-104.047, 48.3907], [-104.0471, 48.4111], [-104.047, 48.4211], [-104.0471, 48.4459], [-104.0472, 48.4473], [-104.0473, 48.4525], [-104.0473, 48.4529], [-104.0474, 48.4671], [-104.0476, 48.4941], [-104.0477, 48.5179], [-104.0475, 48.5259], [-104.0479, 48.5308], [-104.0476, 48.5315], [-104.0478, 48.5397], [-104.0478, 48.5628], [-104.048, 48.5916], [-104.0482, 48.5991], [-104.0479, 48.6202], [-104.0476, 48.6256], [-104.0476, 48.627], [-104.0476, 48.634], [-104.0476, 48.634], [-104.0478, 48.6486], [-104.0479, 48.6499], [-104.0479, 48.6574], [-104.0479, 48.6589], [-104.0478, 48.6632], [-104.0479, 48.6642], [-104.0483, 48.7471], [-104.0485, 48.7514], [-104.0485, 48.7886], [-104.0486, 48.7971], [-104.0489, 48.8474], [-104.0487, 48.8657], [-104.0488, 48.8675], [-104.0489, 48.874], [-104.0489, 48.8757], [-104.0487, 48.8799], [-104.0486, 48.9026], [-104.0487, 48.9069], [-104.0487, 48.9121], [-104.0488, 48.9336], [-104.0487, 48.9403], [-104.0488, 48.9433], [-104.0489, 48.9496], [-104.0487, 48.9518], [-104.0486, 48.9571], [-104.0488, 48.959], [-104.0486, 48.9638], [-104.0486, 48.9667], [-104.0485, 48.987], [-104.0487, 48.9999], [-103.9925, 48.9996], [-103.9889, 48.9996], [-103.9838, 48.9996], [-103.9824, 48.9996], [-103.9809, 48.9996], [-103.9765, 48.9996], [-103.9695, 48.9995], [-103.9686, 48.9995], [-103.9233, 48.9996], [-103.922, 48.9996], [-103.9189, 48.9996], [-103.9174, 48.9996], [-103.8769, 48.9995], [-103.8653, 48.9996], [-103.8627, 48.9996], [-103.8584, 48.9996], [-103.8561, 48.9996], [-103.8523, 48.9996], [-102.9388, 48.999], [-102.217, 48.9986], [-102.2113, 48.9986], [-102.1518, 48.9988], [-102.1316, 48.9988], [-102.0211, 48.999], [-101.4967, 48.9994], [-101.2259, 48.9995], [-101.2252, 48.9996], [-101.2208, 48.9995], [-101.2162, 48.9995], [-100.9206, 48.9996], [-100.9179, 48.9996], [-100.9136, 48.9997], [-100.9071, 48.9996], [-100.434, 48.9994], [-100.4344, 48.9996], [-100.4316, 48.9996], [-100.4317, 48.9994], [-100.1827, 48.9992], [-99.9138, 48.999], [-99.9137, 48.999], [-99.8615, 48.9992], [-99.8615, 48.9992], [-99.5257, 48.9994], [-98.9998, 48.9998], [-97.9502, 49.0005], [-97.7758, 49.0006], [-97.4112, 49.0005], [-97.229, 49.0007], [-97.234, 48.9975], [-97.2384, 48.9826], [-97.2392, 48.9676], [-97.2326, 48.9466], [-97.1995, 48.8812], [-97.1578, 48.7877], [-97.1376, 48.7492], [-97.0926, 48.682], [-97.163, 48.544], [-97.1631, 48.5439], [-97.1611, 48.5432], [-97.1505, 48.5394], [-97.1268, 48.5202], [-97.1234, 48.4212], [-97.1315, 48.4066], [-97.1457, 48.3974], [-97.1364, 48.3524], [-97.1267, 48.3421], [-97.1156, 48.3239], [-97.1166, 48.2797], [-97.1299, 48.2497], [-97.1345, 48.2497], [-97.1431, 48.2467], [-97.1472, 48.243], [-97.1474, 48.1938], [-97.1475, 48.1732], [-97.1475, 48.1706], [-97.1231, 48.1095], [-97.0983, 48.0713], [-97.0882, 48.0595], [-97.0232, 47.874], [-97.0004, 47.8609], [-96.9804, 47.8157], [-96.8907, 47.6722], [-96.8857, 47.6643], [-96.851, 47.5983], [-96.8424, 47.5082], [-96.8533, 47.5039], [-96.8538, 47.4995], [-96.8623, 47.4223], [-96.8527, 47.375], [-96.833, 47.2381], [-96.8329, 47.2376], [-96.8267, 47.1505], [-96.8248, 47.125], [-96.8232, 47.0], [-96.8246, 46.9933], [-96.8232, 46.9709], [-96.7916, 46.9343], [-96.7803, 46.9283], [-96.7675, 46.9052], [-96.802, 46.8125], [-96.7842, 46.6868], [-96.783, 46.6306], [-96.783, 46.6304], [-96.783, 46.6304], [-96.7391, 46.5437], [-96.7164, 46.4446], [-96.722, 46.44], [-96.6698, 46.3846], [-96.6316, 46.3538], [-96.5982, 46.3126], [-96.5991, 46.2637], [-96.5856, 46.1773], [-96.5784, 46.1701], [-96.558, 46.1024], [-96.5548, 46.0848], [-96.5569, 46.0646], [-96.5593, 46.0583], [-96.5663, 46.0514], [-96.5779, 46.0269], [-96.5773, 46.0218], [-96.5704, 45.9636], [-96.5633, 45.9352], [-96.5769, 45.9353], [-96.5974, 45.9352], [-96.6071, 45.9353], [-96.6183, 45.9354], [-96.6391, 45.9353], [-96.6599, 45.9356], [-96.6806, 45.9357], [-96.7013, 45.9358], [-96.7915, 45.9359], [-96.9987, 45.9357], [-97.0196, 45.9354], [-97.1181, 45.9355], [-97.145, 45.9353], [-97.2283, 45.9351], [-97.2283, 45.9351], [-97.2283, 45.9351], [-97.3122, 45.9351], [-97.3189, 45.9351], [-97.482, 45.9351], [-97.4919, 45.9351], [-97.5189, 45.9353], [-97.519, 45.9353], [-97.5426, 45.9353], [-97.6967, 45.9354], [-97.777, 45.9354], [-97.7846, 45.9353], [-97.9587, 45.9359], [-97.9788, 45.9359], [-97.9869, 45.936], [-98.0081, 45.9361], [-98.0082, 45.9361], [-98.0705, 45.9362], [-98.1846, 45.9362], [-98.1856, 45.9362], [-98.7244, 45.9387], [-98.9044, 45.9395], [-98.9055, 45.9395], [-99.0056, 45.9399], [-99.0058, 45.9399], [-99.0929, 45.9402], [-99.1024, 45.9402], [-99.2126, 45.9401], [-99.2136, 45.9401], [-99.2217, 45.9401], [-99.2223, 45.9401], [-99.2577, 45.9401], [-99.2763, 45.9402], [-99.284, 45.9402], [-99.2973, 45.9402], [-99.3179, 45.9403], [-99.3448, 45.9403], [-99.345, 45.9403], [-99.3785, 45.9404], [-99.3856, 45.9404], [-99.4013, 45.9404], [-99.4903, 45.9404], [-99.4931, 45.9404], [-99.5888, 45.9411], [-99.6112, 45.9411], [-99.6719, 45.9411], [-99.693, 45.9409], [-99.7181, 45.9409], [-99.7181, 45.9409], [-99.7479, 45.9409], [-99.7493, 45.9409], [-99.7495, 45.941], [-99.7504, 45.9409], [-99.8387, 45.9413], [-99.8801, 45.9417], [-99.8803, 45.9417], [-99.9658, 45.9418], [-100.0055, 45.9419], [-100.069, 45.9422], [-100.0842, 45.9423], [-100.1085, 45.9424], [-100.1103, 45.9424], [-100.1417, 45.9425], [-100.1521, 45.9425], [-100.1708, 45.9425], [-100.2748, 45.9429], [-100.2756, 45.9429], [-100.2841, 45.943], [-100.2853, 45.9431], [-100.2941, 45.9433], [-100.4104, 45.9435], [-100.4202, 45.9435], [-100.4244, 45.9436], [-100.4306, 45.9436], [-100.4628, 45.9436], [-100.4994, 45.9436], [-100.5118, 45.9437], [-100.5119, 45.9437]];
+/* =================================================== */
+
+const CAMPUSES = DATA.camps, SNFS = DATA.snfs, STATE = DATA.state, ST = DATA.st;
+CAMPUSES.forEach((c, i) => c.num = i + 1);
+const RADIUS_M = RADIUS_MILES * 1609.344;
+const OVERPASS = ['https://overpass-api.de/api/interpreter', 'https://overpass.private.coffee/api/interpreter', 'https://overpass.kumi.systems/api/interpreter', 'https://maps.mail.ru/osm/tools/overpass/api/interpreter'];
+const CACHE_DAYS = 7;
+document.getElementById('rad').textContent = RADIUS_MILES;
+document.querySelectorAll('.radtxt').forEach(e => e.textContent = RADIUS_MILES);
+
+const map = L.map('map', { zoomSnap: 0.25 }).setView(DATA.center, 7);
+/* Basemaps (no API key needed). Color streets is the default; switch in the top-right corner. */
+const ESRI = 'https://server.arcgisonline.com/ArcGIS/rest/services/';
+const esriAttr = 'Tiles &copy; <a href="https://www.esri.com">Esri</a>, HERE, Garmin, &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
+const osmAttr = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
+const BASEMAPS = {
+  'Color streets': L.tileLayer(ESRI + 'World_Street_Map/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19, attribution: esriAttr }),
+  'Color topographic': L.tileLayer(ESRI + 'World_Topo_Map/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19, attribution: esriAttr }),
+  'Light gray': L.layerGroup([
+    L.tileLayer(ESRI + 'Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}', { maxZoom: 16, attribution: esriAttr }),
+    L.tileLayer(ESRI + 'Canvas/World_Light_Gray_Reference/MapServer/tile/{z}/{y}/{x}', { maxZoom: 16 })
+  ]),
+  'Satellite': L.layerGroup([
+    L.tileLayer(ESRI + 'World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19, attribution: 'Imagery &copy; <a href="https://www.esri.com">Esri</a>, Maxar, Earthstar Geographics' }),
+    L.tileLayer(ESRI + 'Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19 })
+  ]),
+  'OpenStreetMap': L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: osmAttr })
+};
+BASEMAPS['Color topographic'].addTo(map);
+L.control.layers(BASEMAPS, null, { position: 'topright', collapsed: true }).addTo(map);
+// If the default tiles fail to load, switch to OpenStreetMap automatically
+let tileErrors = 0, switched = false;
+BASEMAPS['Color topographic'].on('tileerror', () => {
+  if (switched || ++tileErrors < 4) return;
+  switched = true;
+  map.removeLayer(BASEMAPS['Color topographic']);
+  BASEMAPS['OpenStreetMap'].addTo(map);
+});
+
+L.control.scale({ position: 'bottomright', imperial: true, metric: false }).addTo(map);
+
+/* state outline with a soft mask outside it */
+const stateRing = OUTLINE.map(([lon, lat]) => [lat, lon]);
+const stateBounds = L.latLngBounds(stateRing);
+L.polygon([[[89, -179], [89, 179], [-89, 179], [-89, -179]], stateRing], {
+  stroke: false, fillColor: '#1E3556', fillOpacity: 0.16, interactive: false
+}).addTo(map);
+L.polygon(stateRing, { color: '#1E3556', weight: 2.5, opacity: 0.8, fill: false, interactive: false }).addTo(map);
+L.tooltip({ permanent: true, direction: 'center', className: 'state-label', interactive: false })
+  .setLatLng(stateBounds.getCenter()).setContent(STATE).addTo(map);
+
+map.createPane('ringsPane').style.zIndex = 390;
+map.createPane('lowPane').style.zIndex = 600;
+map.createPane('nearbyPane').style.zIndex = 620;
+map.createPane('minePane').style.zIndex = 660;
+
+const layers = { mine: L.layerGroup(), snf: L.layerGroup(), hospital: L.layerGroup(), assisted: L.layerGroup(), independent: L.layerGroup(), otherSnf: L.layerGroup(), rings: L.layerGroup() };
+const LEGEND = [
+  { key: 'mine', label: 'Your campuses' },
+  { key: 'snf', label: 'Competitor skilled nursing' },
+  { key: 'hospital', label: 'Hospitals' },
+  { key: 'assisted', label: 'Assisted living' },
+  { key: 'independent', label: 'Independent & senior living' },
+  { key: 'otherSnf', label: `Other ${STATE} skilled nursing` },
+  { key: 'rings', label: RADIUS_MILES + '-mile market area' }
+];
+['mine', 'snf', 'hospital', 'assisted', 'independent', 'rings'].forEach(k => layers[k].addTo(map));
+const counts = {};
+let located = [], nearbyRows = [], snfRows = [], osmDone = false;
+const campusMarkers = {};
+
+/* ---------- helpers ---------- */
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const fmt = n => Number(n).toLocaleString('en-US');
+function miles(a, b) {
+  const R = 3958.8, r = x => x * Math.PI / 180;
+  const dLat = r(b[0] - a[0]), dLon = r(b[1] - a[1]);
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(r(a[0])) * Math.cos(r(b[0])) * Math.sin(dLon / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(h));
+}
+function nearest(lat, lon) {
+  let best = null, d = Infinity;
+  located.forEach(c => { const x = miles([c.lat, c.lon], [lat, lon]); if (x < d) { d = x; best = c; } });
+  return { campus: best, dist: d };
+}
+function stars(n) { n = Number(n); return Number.isFinite(n) && n > 0 ? `<span class="stars" aria-label="${n} of 5 stars">${'★'.repeat(n)}${'☆'.repeat(5 - n)}</span>` : 'Not rated'; }
+function setStatus(html, isError) { const el = document.getElementById('status'); el.className = 'status' + (isError ? ' error' : ''); el.innerHTML = html; }
+function lsGet(k) { try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } }
+function lsSet(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+const phoneFmt = p => (p = String(p || '').replace(/\D/g, '')).length === 10 ? `(${p.slice(0, 3)}) ${p.slice(3, 6)}-${p.slice(6)}` : p;
+
+function campusTotals(c) {
+  const sum = t => c.services.filter(s => s.careType === t).reduce((a, s) => a + (Number(s.units) || 0) + (Number(s.beds) || 0), 0);
+  return { snf: sum('SNF'), al: sum('AL'), il: sum('IL') };
+}
+function campusSummary(c) {
+  const t = campusTotals(c), p = [];
+  if (t.snf) p.push(`${t.snf} SNF beds`);
+  if (t.al) p.push(`${t.al} AL units`);
+  if (t.il) p.push(`${t.il} IL units`);
+  return p.join(', ');
+}
+
+
+
+/* ---------- KPI tiles ---------- */
+function renderTiles() {
+  const tot = { snf: 0, al: 0, il: 0 };
+  CAMPUSES.forEach(c => { const t = campusTotals(c); tot.snf += t.snf; tot.al += t.al; tot.il += t.il; });
+  document.getElementById('tiles').innerHTML = `
+    <div class="tile t2"><b>${fmt(tot.snf)}</b><span>SNF / Post Acute beds</span></div>
+    <div class="tile t3"><b>${fmt(tot.al)}</b><span>Assisted living units</span></div>
+    <div class="tile t4"><b>${fmt(tot.il)}</b><span>Independent living units</span></div>`;
+}
+
+/* ---------- legend on the map ---------- */
+const LegendCtl = L.Control.extend({
+  onAdd() { const d = L.DomUtil.create('div', 'legend'); d.id = 'legend'; L.DomEvent.disableClickPropagation(d); L.DomEvent.disableScrollPropagation(d); return d; }
+});
+new LegendCtl({ position: 'bottomleft' }).addTo(map);
+function renderLegend() {
+  const el = document.getElementById('legend');
+  el.innerHTML = LEGEND.map(({ key, label }) => `<label>
+      <input type="checkbox" ${map.hasLayer(layers[key]) ? 'checked' : ''} data-key="${key}">
+      <span class="sw ${key}">${key === 'hospital' ? '+' : key === 'mine' ? '1' : ''}</span>
+      <span class="name">${label}</span>
+      <span class="count">${counts[key] == null || key === 'rings' ? '' : fmt(counts[key])}</span>
+    </label>`).join('');
+  el.querySelectorAll('input').forEach(inp => inp.addEventListener('change', e => {
+    const lg = layers[e.target.dataset.key];
+    e.target.checked ? lg.addTo(map) : map.removeLayer(lg);
+  }));
+}
+
+/* ---------- geocoding for campuses without coordinates ---------- */
+async function geocode(c) {
+  const key = 'geo-v1:' + [c.address, c.city, c.zip].join('|');
+  const hit = lsGet(key);
+  if (hit) return hit;
+  const tries = [
+    { street: c.address, city: c.city, state: STATE, postalcode: c.zip },
+    { q: `${c.address}, ${c.city}, ${ST} ${c.zip}` },
+    { postalcode: c.zip, state: STATE, approx: true }
+  ];
+  for (const t of tries) {
+    const params = new URLSearchParams({ format: 'json', limit: '1', countrycodes: 'us' });
+    Object.entries(t).forEach(([k, v]) => k !== 'approx' && params.set(k, v));
+    try {
+      const r = await fetch('https://nominatim.openstreetmap.org/search?' + params);
+      const j = r.ok ? await r.json() : [];
+      await new Promise(res => setTimeout(res, 1100)); // be polite to the free service
+      if (j.length) {
+        const out = { lat: +j[0].lat, lon: +j[0].lon, approx: !!t.approx };
+        lsSet(key, out);
+        return out;
+      }
+    } catch (e) {}
+  }
+  return null;
+}
+
+
+
+function campusPopup(c) {
+  const ORDER = { SNF: 0, AL: 1, IL: 2 };
+  const rows = [...c.services].sort((x, y) => ORDER[x.careType] - ORDER[y.careType]).map(s => {
+    const qty = s.beds ? `${s.beds} beds` : s.units ? `${s.units} units` : 'Not listed';
+    return `<tr><td>${esc(s.careType === 'SNF' ? 'SNF/Post Acute' : s.careType)}</td><td>${esc(s.community)}</td><td class="n">${qty}</td></tr>`;
+  }).join('');
+  const snf = c.services.find(s => s.careType === 'SNF');
+  return `<div class="pop-type"><i style="background:${COLORS.mine}"></i>${c.managed ? 'Managed campus' : 'Your campus'}</div>
+    <p class="pop-name">${esc(c.name)}</p>
+    <div class="pop-row">${esc(c.address)}, ${esc(c.city)}, ${ST} ${esc(c.zip)}</div>
+    ${c.note ? `<div class="approx">${esc(c.note)}</div>` : ''}
+    ${c.approx ? '<div class="approx">Approximate location (ZIP code). Add exact coordinates in the data to fix.</div>' : ''}
+    <table class="pop-table"><tr><th>Care</th><th>Community</th><th style="text-align:right">Capacity</th></tr>${rows}</table>
+    ${snf ? `<div class="pop-row">CMS overall rating: ${stars(snf.rating)} &nbsp;CCN ${esc(snf.ccn)}</div>` : ''}`;
+}
+function snfPopup(s, near) {
+  return `<div class="pop-type"><i style="background:${near ? COLORS.snf : COLORS.otherSnf};border-radius:2px"></i>Skilled nursing${near ? ' competitor' : ''}</div>
+    <p class="pop-name">${esc(s.name)}</p>
+    <div class="pop-cap">${fmt(s.beds)} certified beds${s.census ? `, ${s.census} avg residents/day` : ''}</div>
+    <div class="pop-row">CMS overall rating: ${stars(s.rating)}</div>
+    <div class="pop-row">${esc(s.address)}, ${esc(s.city)} ${esc(s.zip)}</div>
+    <div class="pop-row">${esc(phoneFmt(s.phone))}</div>
+    <div class="pop-row">${esc(s.owner)}${s.chain ? ` · ${esc(s.chain)}` : ''}</div>
+    ${near ? `<div class="pop-dist">${near.dist.toFixed(1)} mi from <strong>${esc(near.campus.name)}</strong></div>` : ''}`;
+}
+
+
+
+function drawCampuses() {
+  layers.mine.clearLayers(); layers.rings.clearLayers();
+  located.forEach(c => {
+    L.circle([c.lat, c.lon], { pane: 'ringsPane', radius: RADIUS_M, color: COLORS.mine, weight: 1.5, dashArray: '6 6', fillColor: COLORS.mine, fillOpacity: 0.06, interactive: false }).addTo(layers.rings);
+    const icon = L.divIcon({ className: '', html: `<div class="m-num" data-n="${c.num}">${c.num}</div>`, iconSize: [30, 30], iconAnchor: [15, 15], popupAnchor: [0, -15] });
+    const m = L.marker([c.lat, c.lon], { icon, pane: 'minePane', zIndexOffset: 1000, title: c.name })
+      .bindPopup(campusPopup(c))
+      .bindTooltip(`<strong>${esc(c.name)}</strong><br>${esc(campusSummary(c))}`, { direction: 'top', offset: [0, -16] })
+      .on('mouseover', () => hot(c.num, true)).on('mouseout', () => hot(c.num, false))
+      .addTo(layers.mine);
+    campusMarkers[c.num] = m;
+  });
+  counts.mine = located.length;
+}
+function hot(n, on) {
+  document.querySelectorAll(`.m-num[data-n="${n}"]`).forEach(e => e.classList.toggle('hot', on));
+  document.querySelectorAll(`.fitem[data-n="${n}"]`).forEach(e => e.classList.toggle('hot', on));
+}
+
+function drawSnfs() {
+  layers.snf.clearLayers(); layers.otherSnf.clearLayers(); snfRows = [];
+  const snfIcon = L.divIcon({ className: '', html: '<div class="m-snf"></div>', iconSize: [16, 16], iconAnchor: [8, 8], popupAnchor: [0, -8] });
+  const oIcon = L.divIcon({ className: '', html: '<div class="m-osnf"></div>', iconSize: [10, 10], iconAnchor: [5, 5], popupAnchor: [0, -5] });
+  SNFS.forEach(s => {
+    const n = nearest(s.lat, s.lon);
+    const inRange = n.campus && n.dist <= RADIUS_MILES;
+    if (inRange) {
+      s._within = located.filter(c => miles([c.lat, c.lon], [s.lat, s.lon]) <= RADIUS_MILES).map(c => c.facility);
+      snfRows.push({ ...s, near: n.campus.name, dist: n.dist });
+      L.marker([s.lat, s.lon], { icon: snfIcon, pane: 'nearbyPane' }).bindPopup(snfPopup(s, n)).addTo(layers.snf);
+    } else {
+      s._within = [];
+      L.marker([s.lat, s.lon], { icon: oIcon, pane: 'lowPane' }).bindPopup(snfPopup(s, null)).addTo(layers.otherSnf);
+    }
+  });
+  counts.snf = snfRows.length;
+  counts.otherSnf = SNFS.length - snfRows.length;
+}
+
+
+
+/* ---------- campus list (sidebar) ---------- */
+function shortName(c) { return c.name.replace('Good Samaritan Society – ', ''); }
+function renderList() {
+  document.getElementById('fhead').textContent = `Campuses (${CAMPUSES.length})`;
+  const el = document.getElementById('flist');
+  el.innerHTML = CAMPUSES.map(c => {
+    const t = campusTotals(c);
+    const types = ['SNF', 'AL', 'IL'].filter(k => c.services.some(s => s.careType === k)).map(k => k === 'SNF' ? 'SNF/Post Acute' : k).join(' · ');
+    const cap = [t.snf ? `${t.snf} SNF beds` : '', t.al ? `${t.al} AL units` : '', t.il ? `${t.il} IL units` : ''].filter(Boolean).map(x => `<span>${x}</span>`).join('');
+    let near = '';
+    if (c.lat != null) {
+      const snfN = SNFS.filter(s => (s._within || []).includes(c.facility)).length;
+      const o = k => osmDone ? nearbyRows.filter(r => r.type === k && r.within.includes(c.facility)).length : '…';
+      near = `<div class="fnear"><span><i style="background:${COLORS.snf};border-radius:2px"></i>${snfN} SNF</span><span><i style="background:${COLORS.hospital}"></i>${o('hospital')} hosp.</span><span><i style="background:${COLORS.assisted}"></i>${o('assisted')} AL</span><span><i style="background:${COLORS.independent}"></i>${o('independent')} IL</span></div>`;
+    } else {
+      near = '<div class="fnear">Locating…</div>';
+    }
+    return `<li><button class="fitem" data-n="${c.num}">
+      <span class="num">${c.num}</span>
+      <span><div class="fname">${esc(shortName(c))}</div><div class="fsub">${esc(c.city)} | ${esc(types)}${c.managed ? ' | managed' : ''}</div>${near}</span>
+      <span class="fcap">${cap}</span>
+    </button></li>`;
+  }).join('');
+  el.querySelectorAll('.fitem').forEach(b => {
+    const n = +b.dataset.n, c = CAMPUSES.find(x => x.num === n);
+    b.onmouseenter = () => hot(n, true); b.onmouseleave = () => hot(n, false);
+    b.onclick = () => {
+      if (c.lat == null) return;
+      map.flyToBounds(L.latLng(c.lat, c.lon).toBounds(RADIUS_M * 2), { padding: [20, 20], duration: 0.6 });
+      map.once('moveend', () => campusMarkers[n] && campusMarkers[n].openPopup());
+      if (window.innerWidth <= 960) document.querySelector('.mapwrap').scrollIntoView({ behavior: 'smooth' });
+    };
+  });
+}
+const renderMarket = renderList;
+
+function fitCampuses() { map.fitBounds(stateBounds, { padding: [16, 16] }); }
+
+/* ---------- nearby hospitals / AL / IL from OpenStreetMap ---------- */
+function buildQuery(pts) {
+  const R = Math.round(RADIUS_M);
+  const parts = pts.map(p => {
+    const a = `(around:${R},${p.lat.toFixed(5)},${p.lon.toFixed(5)})`;
+    return `nwr["amenity"="hospital"]${a};nwr["healthcare"="hospital"]${a};nwr["social_facility"]${a};nwr["amenity"="social_facility"]${a};nwr["amenity"="nursing_home"]${a};nwr["amenity"="retirement_home"]${a};`;
+  }).join('');
+  return `[out:json][timeout:25];(${parts});out center tags;`;
+}
+function classify(t) {
+  const name = (t.name || '').toLowerCase();
+  if (t.shop || t.office || /veterinar|animal|pet /.test(name)) return null;
+  if (t.amenity === 'hospital' || t.healthcare === 'hospital') return 'hospital';
+  const sf = t.social_facility || '', sfFor = t['social_facility:for'] || '';
+  if (/assisted living|memory care|assisted care/.test(name) || sf === 'assisted_living') return 'assisted';
+  if (/independent living|senior living|senior apartments|senior community|senior residence|retirement (community|residence|village)/.test(name)) return 'independent';
+  if (t.amenity === 'retirement_home') return 'independent';
+  if (/senior/.test(sfFor) && !/nursing_home/.test(sf) && t.amenity !== 'nursing_home') return 'independent';
+  return null; // nursing homes are covered by the CMS skilled nursing data
+}
+let lastOverpassError = '';
+const wait = ms => new Promise(r => setTimeout(r, ms));
+async function overpass(query) {
+  const errors = [];
+  for (let round = 0; round < 2; round++) {
+    for (const url of OVERPASS) {
+      const ctl = new AbortController();
+      const timer = setTimeout(() => ctl.abort(), 40000);
+      try {
+        const r = await fetch(url, { method: 'POST', signal: ctl.signal, headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: 'data=' + encodeURIComponent(query) });
+        clearTimeout(timer);
+        if (!r.ok) { errors.push(`${new URL(url).host}: busy (HTTP ${r.status})`); await wait(1500); continue; }
+        const j = await r.json();
+        if (j.remark && /timed out|out of memory/i.test(j.remark) && !(j.elements || []).length) { errors.push(`${new URL(url).host}: overloaded`); continue; }
+        return j.elements || [];
+      } catch (e) {
+        clearTimeout(timer);
+        errors.push(`${new URL(url).host}: ${e.name === 'AbortError' ? 'timed out' : 'busy or unreachable'}`);
+        await wait(1500);
+      }
+    }
+    await wait(4000);
+  }
+  lastOverpassError = [...new Set(errors)].join('; ');
+  throw new Error(lastOverpassError);
+}
+
+/* Search a few campuses at a time; each batch is cached separately,
+   so a retry only re-asks for the areas that didn't load. */
+async function findNearby(force) {
+  const BATCH = 3, batches = [];
+  for (let i = 0; i < located.length; i += BATCH) batches.push(located.slice(i, i + BATCH));
+  const all = [];
+  let failed = 0;
+  for (let i = 0; i < batches.length; i++) {
+    const pts = batches[i];
+    const key = 'nearby-v5:' + RADIUS_MILES + ':' + pts.map(c => c.lat.toFixed(4) + ',' + c.lon.toFixed(4)).join('|');
+    const cached = lsGet(key);
+    if (!force && cached && Date.now() - cached.t < CACHE_DAYS * 864e5) { all.push(...cached.data); continue; }
+    setStatus(`<span class="spinner" aria-hidden="true"></span>Finding hospitals, assisted living and independent living… area ${i + 1} of ${batches.length}`);
+    try {
+      const els = (await overpass(buildQuery(pts))).map(e => ({ id: e.type + e.id, lat: e.lat ?? e.center?.lat, lon: e.lon ?? e.center?.lon, tags: e.tags || {} })).filter(e => e.lat != null);
+      lsSet(key, { t: Date.now(), data: els });
+      all.push(...els);
+    } catch (e) {
+      failed++;
+      if (failed >= 2 && all.length === 0) { failed = batches.length; break; } // service is down; don't keep waiting
+    }
+    if (all.length) drawNearby(all, true);
+  }
+  drawNearby(all, false);
+  if (failed) {
+    const allFailed = failed === batches.length;
+    setStatus(`${allFailed ? "The free OpenStreetMap service is busy right now, so hospitals and senior living aren't shown yet." : `${failed} of ${batches.length} areas didn't load because the OpenStreetMap service is busy; the rest are shown.`} Skilled nursing competitors are unaffected. Results are saved once they load, so this usually only needs to succeed once.<br><span style="font-size:11px">Details: ${esc(lastOverpassError)}</span><br><button class="btn" id="retryBtn">Try again</button>`, true);
+    document.getElementById('retryBtn').onclick = () => findNearby(false);
+  }
+}
+
+function nearbyPopup(p, type, n) {
+  const t = p.tags, labels = { hospital: 'Hospital', assisted: 'Assisted living', independent: 'Independent / senior living' };
+  const addr = [[t['addr:housenumber'], t['addr:street']].filter(Boolean).join(' '), t['addr:city']].filter(Boolean).join(', ');
+  const site = t.website || t['contact:website'], phone = t.phone || t['contact:phone'];
+  return `<div class="pop-type"><i style="background:${COLORS[type]}"></i>${labels[type]}</div>
+    <p class="pop-name">${esc(t.name || 'Unnamed ' + labels[type].toLowerCase())}</p>
+    ${addr ? `<div class="pop-row">${esc(addr)}</div>` : ''}
+    ${phone ? `<div class="pop-row">${esc(phone)}</div>` : ''}
+    ${site && /^https?:\/\//i.test(site) ? `<div class="pop-row"><a href="${esc(site)}" target="_blank" rel="noopener">Website</a></div>` : ''}
+    <div class="pop-dist">${n.dist.toFixed(1)} mi from <strong>${esc(n.campus.name)}</strong></div>`;
+}
+function drawNearby(els, partial) {
+  ['hospital', 'assisted', 'independent'].forEach(k => layers[k].clearLayers());
+  nearbyRows = [];
+  const seen = new Set(), c = { hospital: 0, assisted: 0, independent: 0 };
+  const hospIcon = L.divIcon({ className: '', html: '<div class="m-hosp">+</div>', iconSize: [20, 20], iconAnchor: [10, 10], popupAnchor: [0, -10] });
+  els.forEach(p => {
+    if (seen.has(p.id)) return; seen.add(p.id);
+    const type = classify(p.tags); if (!type) return;
+    const n = nearest(p.lat, p.lon);
+    if (!n.campus || n.dist > RADIUS_MILES) return;
+    if (/samaritan/i.test(p.tags.name || '') && n.dist < 0.3) return; // skip your own campus
+    const m = type === 'hospital'
+      ? L.marker([p.lat, p.lon], { icon: hospIcon, pane: 'nearbyPane' })
+      : L.circleMarker([p.lat, p.lon], { pane: 'nearbyPane', radius: 7, weight: 1.5, fillOpacity: 1, fillColor: COLORS[type], color: type === 'assisted' ? '#0B5D1E' : '#7A3E00' });
+    m.bindPopup(nearbyPopup(p, type, n)).addTo(layers[type]);
+    c[type]++;
+    const t = p.tags;
+    nearbyRows.push({
+      name: t.name || 'Unnamed', type, lat: p.lat, lon: p.lon, near: n.campus.name, dist: n.dist,
+      within: located.filter(x => miles([x.lat, x.lon], [p.lat, p.lon]) <= RADIUS_MILES).map(x => x.facility),
+      address: [[t['addr:housenumber'], t['addr:street']].filter(Boolean).join(' '), t['addr:city'], t['addr:postcode']].filter(Boolean).join(', '),
+      phone: t.phone || t['contact:phone'] || '', website: t.website || t['contact:website'] || ''
+    });
+  });
+  osmDone = true;
+  Object.assign(counts, c);
+  renderLegend(); renderMarket();
+  if (!partial) setStatus(`Showing ${counts.snf} skilled nursing competitors, ${c.hospital} hospitals, ${c.assisted} assisted living and ${c.independent} independent or senior living communities within ${RADIUS_MILES} miles of your campuses.${DATA.snfNote ? ' ' + DATA.snfNote : ''}`);
+}
+
+
+
+/* ---------- export for Excel ---------- */
+const CAT = { mine: '1 Your campus', snf: '2 Competitor SNF', hospital: '3 Hospital', assisted: '4 Assisted living', independent: '5 Independent / senior living' };
+const SIZE = { mine: 3, snf: 2, hospital: 2, assisted: 1.5, independent: 1.5 };
+document.getElementById('exportBtn').onclick = () => {
+  const blank = { Beds: '', Units: '', 'SNF beds': '', 'AL units': '', 'IL units': '', 'CMS overall rating': '', 'Nearest GSS campus': '', 'Distance (mi)': '', Address: '', Phone: '', Website: '' };
+  const rows = [
+    ...located.map(c => { const t = campusTotals(c); const snf = c.services.find(s => s.careType === 'SNF');
+      return { Name: c.name, Category: CAT.mine, Latitude: c.lat, Longitude: c.lon, Size: SIZE.mine, ...blank,
+        Beds: t.snf || '', Units: (t.al + t.il) || '', 'SNF beds': t.snf || '', 'AL units': t.al || '', 'IL units': t.il || '',
+        'CMS overall rating': snf?.rating ?? '', Address: `${c.address}, ${c.city}, ${ST} ${c.zip}` }; }),
+    ...snfRows.map(s => ({ Name: s.name, Category: CAT.snf, Latitude: s.lat, Longitude: s.lon, Size: SIZE.snf, ...blank,
+      Beds: s.beds, 'SNF beds': s.beds, 'CMS overall rating': s.rating ?? '', 'Nearest GSS campus': s.near, 'Distance (mi)': s.dist.toFixed(1),
+      Address: `${s.address}, ${s.city}, ${ST} ${s.zip}`, Phone: phoneFmt(s.phone) })),
+    ...nearbyRows.map(r => ({ Name: r.name, Category: CAT[r.type], Latitude: r.lat, Longitude: r.lon, Size: SIZE[r.type], ...blank,
+      'Nearest GSS campus': r.near, 'Distance (mi)': r.dist.toFixed(1), Address: r.address, Phone: r.phone, Website: r.website }))
+  ];
+  const url = URL.createObjectURL(new Blob(['\ufeff' + Papa.unparse(rows)], { type: 'text/csv;charset=utf-8' }));
+  const a = Object.assign(document.createElement('a'), { href: url, download: `gss-${STATE.toLowerCase()}-market-map.csv` });
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+};
+
+
+
+document.getElementById('fitBtn').onclick = fitCampuses;
+
+(async function init() {
+  renderTiles(); renderLegend(); renderList(); fitCampuses();
+  const missing = CAMPUSES.filter(c => c.lat == null);
+  located = CAMPUSES.filter(c => c.lat != null);
+  drawCampuses(); drawSnfs(); renderLegend(); renderList();
+  if (missing.length) {
+    setStatus(`<span class="spinner" aria-hidden="true"></span>Locating ${missing.length} campuses from their addresses…`);
+    for (const c of missing) {
+      const g = await geocode(c);
+      if (g) Object.assign(c, g);
+      located = CAMPUSES.filter(x => x.lat != null);
+      drawCampuses(); renderList();
+    }
+    drawSnfs(); renderLegend(); renderList();
+    const failed = CAMPUSES.filter(c => c.lat == null);
+    if (failed.length) setStatus(`Couldn't locate ${failed.map(c => shortName(c)).join(', ')} from the address. Add latitude/longitude in the data.`, true);
+  }
+  if (located.length) findNearby(false);
+})();
+</script>
+</body>
+</html>
